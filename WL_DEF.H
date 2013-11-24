@@ -19,6 +19,15 @@
 #include "F_SPEAR.H"
 #endif
 
+#define LOGGER
+#ifdef LOGGER
+#include <stdio.h>
+extern FILE *logfile;
+#define WRITELOG(n) fprintf n;
+#else
+#define WRITELOG(n)
+#endif
+
 /*
 =============================================================================
 
@@ -50,6 +59,11 @@
 
 =============================================================================
 */
+
+#define BASEMOVE		35
+#define RUNMOVE			70
+#define BASETURN		35
+#define RUNTURN			70
 
 #define WORD_MAX		0xffff
 #define LONG_MAX		0x7fffffffl

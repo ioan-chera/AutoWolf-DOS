@@ -2,6 +2,7 @@
 
 #include "WL_DEF.H"
 #pragma hdrstop
+#include "bot.h"
 
 #ifdef MYPROFILE
 #include <TIME.H>
@@ -655,7 +656,7 @@ void SetupGameLevel (void)
 
 	if (mapwidth != 64 || mapheight != 64)
 		Quit ("Map not 64*64!");
-
+	BotMapInit();
 
 //
 // copy the wall data to a data segment array

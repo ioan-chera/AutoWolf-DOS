@@ -2,7 +2,7 @@
 
 #include "WL_DEF.H"
 #pragma hdrstop
-
+#include "bot.h"
 
 /*
 =============================================================================
@@ -245,11 +245,6 @@ int songs[]=
 =============================================================================
 */
 
-
-#define BASEMOVE		35
-#define RUNMOVE			70
-#define BASETURN		35
-#define RUNTURN			70
 
 #define JOYSCALE		2
 
@@ -536,7 +531,7 @@ void PollControls (void)
 
 	if (joystickenabled)
 		PollJoystickMove ();
-
+	BotCommand();
 //
 // bound movement to a maximum
 //

@@ -4,6 +4,9 @@
 #include "WL_DEF.H"
 #pragma hdrstop
 
+#ifdef LOGGER
+FILE* logfile;
+#endif
 
 /*
 =============================================================================
@@ -1602,7 +1605,9 @@ void main (void)
 	 exit(1);
 	}
 #endif
-
+#ifdef LOGGER
+	logfile = fopen("autowolf.log", "wt");
+#endif
 	CheckForEpisodes();
 
 	Patch386 ();

@@ -1,13 +1,14 @@
-﻿#include "wl_def.h"
+#include "wl_def.h"
+#pragma hdrstop
+#include "queue.h"
 
-
-word queue[QUEUE_SIZE];
+word far queue[QUEUE_SIZE];
 word queue_head, queue_tail;
 
 void QueuePush(word n)
 {
 	queue[queue_head] = n;
-	queue_head = (queue_head + 1) % QUEUE_SIZE
+	queue_head = (queue_head + 1) % QUEUE_SIZE;
 }
 
 word QueuePop()

@@ -1,7 +1,7 @@
-﻿#ifndef QUEUE_H_
+#ifndef QUEUE_H_
 #define QUEUE_H_
 #define QUEUE_SIZE (MAPSIZE*MAPSIZE)
-extern word queue[];
+extern word far queue[];
 extern word queue_head, queue_tail;
 #define QUEUE_PUSH(n) {queue[queue_head++] = (n); queue_head %= QUEUE_SIZE;}
 word QueuePop();

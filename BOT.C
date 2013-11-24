@@ -1,4 +1,5 @@
 #include "wl_def.h"
+#pragma hdrstop
 #include "bot.h"
 #include "queue.h"
 #include "util.h"
@@ -13,8 +14,15 @@
 
 #define DISTANCE_SHOOT 10
 #define DISTANCE_CHARGE 6
+#define ANGLE_FOV 45
 
-word path_prev[MAPSIZE*MAPSIZE];
+word far path_prev[MAPSIZE*MAPSIZE];
+word destination;
+
+void BotMapInit(void)
+{
+	destination = 0;
+}
 
 objtype* EnemyVisible(int *angle, int *distance)
 {
@@ -39,6 +47,8 @@ objtype* EnemyVisible(int *angle, int *distance)
 			continue;
 		if(!(ob->flags & FL_SHOOTABLE))
 			continue;
+		if(ob->hitpoints <= 0)
+			continue;
 		if(!CheckLine(ob))
 			continue;
 		if((abs(*distance - i) >= ENEMY_VISIBLE_CHANGE_DISTANCE && ob != oldob) || ob == oldob || (oldob && !(oldob->flags & FL_SHOOTABLE)))
@@ -50,14 +60,14 @@ objtype* EnemyVisible(int *angle, int *distance)
 			}
 		}
 	}
-	
+
 	if(obmin)
 	{
 		oldob = obmin;
-		*angle = (short)(180.f/PI_F*atan2f((float)obmin->y - player->y, (float)obmin->x - player->x));
+		*angle = (short)(180.f/PI_F*atan2(-((float)obmin->y - player->y), (float)obmin->x - player->x));
 		*distance = distmin;
 	}
-	
+
 	return obmin;
 }
 
@@ -67,10 +77,12 @@ boolean ObjectOfInterest(word n)
 	word ty = TILE_DECODE_Y(n);
 	objtype* check = actorat[tx][ty];
 	statobj_t	*statptr;
-	
+
 	for(statptr = &statobjlist[0] ; statptr !=laststatobj ; statptr++)
 	{
 		if(!(statptr->flags & FL_BONUS))
+			continue;
+		if(statptr->shapenum == -1)
 			continue;
 		if(statptr->tilex == tx && statptr->tiley == ty)
 		{
@@ -92,7 +104,7 @@ boolean ObjectOfInterest(word n)
 			case    bo_key2:
 			case    bo_key3:
 			case    bo_key4:
-				if(!(gamestate.keys & (1<<(itemnum - bo_key1))))
+				if(!(gamestate.keys & (1<<(statptr->itemnumber - bo_key1))))
 					return true;
 				break;
 			case    bo_cross:
@@ -135,10 +147,21 @@ boolean ObjectOfInterest(word n)
 		}
 	}
 
-	if(check >= objlist && (check->flags & FL_SHOOTABLE) && gamestate.health > HUNT_NAZIS_HEALTH && gamestate.ammo > HUNT_NAZIS_AMMO)
+	if(check >= objlist && (check->flags & FL_SHOOTABLE) && gamestate.health > HUNT_NAZIS_HEALTH && gamestate.ammo > HUNT_NAZIS_AMMO && check->hitpoints > 0)
 		return true;
-	
+
 	return false;
+}
+
+boolean CanGoThruLockedDoor(byte door)
+{
+	byte lock = doorobjlist[door].lock;
+	if(lock >= dr_lock1 && lock <= dr_lock4)
+	{
+		if(doorobjlist[door].action != dr_open && doorobjlist[door].action != dr_opening && !(gamestate.keys & (1 << (lock - dr_lock1))))
+			return false;
+	}
+	return true;
 }
 
 boolean TilePassable(word n)
@@ -154,23 +177,19 @@ boolean TilePassable(word n)
 	else if(door & 0x80)
 	{
 		door = door & ~0x80;
-		lock = doorobjlist[door].lock;
-		if(lock >= dr_lock1 && lock <= dr_lock4)
-		{
-			if(doorobjlist[door].action != dr_open && doorobjlist[door].action != dr_opening && !(gamestate.keys & (1 << (lock - dr_lock1))))
-				return false;
-		}
+		if(!CanGoThruLockedDoor(door))
+			return false;
 	}
 	return true;
 }
 
-word FindShortestPath()
+word FindShortestPath(void)
 {
-#define PROCEED(n) if(!path_prev(n) && TilePassable(n)){path_prev[n] = m; QUEUE_PUSH(n)}
+#define PROCEED(n) if(!path_prev[n] && TilePassable(n)){path_prev[n] = m; QUEUE_PUSH(n)}
 	word n = TILE_ENCODE(player->tilex, player->tiley);
 	word m;
 	byte i;
-	memset(path_prev,0,sizeof(path_prev));
+	_fmemset(path_prev,0,sizeof(path_prev));
 	QUEUE_RESET
 	QUEUE_PUSH(n)
 	path_prev[n] = WORD_MAX;
@@ -178,7 +197,9 @@ word FindShortestPath()
 	{
 		m = QueuePop();
 		if(ObjectOfInterest(m))
+		{
 			return m;
+		}
 		// add neighbours. don't worry about bounds checking, maps should be guarded anyway
 		n = m + 1;
 		PROCEED(n)
@@ -212,6 +233,7 @@ void DoCombatAI(int angle, int distance)
 	int dangle = CentreAngle(angle, player->angle);
 	static int inc;
 	objtype* check;
+	WRITELOG((logfile, "DoCombatAI: angle=%d player->angle=%d dangle=%d\n", angle, player->angle, dangle))
 	TurnToAngle(dangle);
 	check = GunSightTarget();
 	++inc;
@@ -229,7 +251,70 @@ void DoCombatAI(int angle, int distance)
 
 void DoNonCombatAI(void)
 {
-	
+	static boolean waitpwall;
+	word nowon, nexton, mypos, nx, ny;
+	fixed nxd, nyd;
+	byte tile;
+	int tangle, dangle;
+	boolean tryuse;
+	objtype* check;
+	static int inc;
+	inc++;
+
+	if(!destination)
+		destination = FindShortestPath();
+	if(!destination)
+		return;
+	if(pwallstate)
+		waitpwall = true;
+	mypos = TILE_ENCODE(player->tilex, player->tiley);
+	nowon = nexton = WORD_MAX;
+	for(nowon = destination; nowon != WORD_MAX; nexton = nowon, nowon = path_prev[nowon])
+	{
+		if(nowon == mypos)
+			break;
+	}
+	if(nowon == WORD_MAX || (!pwallstate && waitpwall))
+	{
+		waitpwall = false;
+		destination = 0;
+		return;
+	}
+	if(nexton == WORD_MAX)
+	{
+//		prevon = path_prev[nowon];
+		destination = 0;
+		return;
+	}
+	else
+	{
+		nx = TILE_DECODE_X(nexton);
+		ny = TILE_DECODE_Y(nexton);
+		tile = tilemap[nx][ny];
+		if(tile & 0x80)
+		{
+			tile &= ~0x80;
+			if(!CanGoThruLockedDoor(tile))
+			{
+				destination = 0;
+				return;
+			}
+			tryuse = (doorobjlist[tile].action == dr_closed || doorobjlist[tile].action == dr_closing);
+		}
+	}
+	tangle = DirAngle(player->x, player->y, ((fixed)nx << TILESHIFT) + TILEGLOBAL/2, ((fixed)ny << TILESHIFT) + TILEGLOBAL / 2);
+	dangle = CentreAngle(tangle, player->angle);
+	if(dangle > -ANGLE_FOV && dangle < ANGLE_FOV)
+	{
+		controly = -RUNMOVE * tics;
+		if(tryuse)
+		{
+			check = actorat[nx][ny];
+			if(check && check < objlist && inc % 2)
+				buttonstate[bt_use] = true;
+		}
+	}
+	TurnToAngle(dangle);
 }
 
 void BotCommand(void)
