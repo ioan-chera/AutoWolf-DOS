@@ -38,6 +38,11 @@
 #define ABS(x) 		((int)(x)>0?(x):-(x))
 #define LABS(x) 	((long)(x)>0?(x):-(x))
 
+#define SWAP(a, b, aux) {(aux) = (a); (a) = (b); (b) = (aux);}
+#define TILE_ENCODE(x, y) ((x) + MAPSIZE * (y))
+#define TILE_DECODE_X(n) ((n) % MAPSIZE)
+#define TILE_DECODE_Y(n) ((n) / MAPSIZE)
+
 /*
 =============================================================================
 
@@ -45,6 +50,8 @@
 
 =============================================================================
 */
+
+#define WORD_MAX		0xffff
 
 #define MAXACTORS		150				// max number of nazis, etc / map
 #define MAXSTATS		400				// max number of lamps, bonus, etc
@@ -93,6 +100,7 @@
 
 
 #define PI	3.141592657
+#define PI_F 3.141592657f
 
 #define GLOBAL1		(1l<<16)
 #define TILEGLOBAL  GLOBAL1
