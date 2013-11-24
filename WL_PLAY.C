@@ -22,6 +22,9 @@
 =============================================================================
 */
 
+boolean		tic_gunsight_set;
+objtype*	tic_gunsight;
+
 boolean		madenoise;					// true when shooting or screaming
 
 exit_t		playstate;
@@ -1364,6 +1367,10 @@ think:
 */
 long funnyticount;
 
+void ResetTicVariables(void)
+{
+	tic_gunsight_set = false;
+}
 
 void PlayLoop (void)
 {
@@ -1394,7 +1401,7 @@ void PlayLoop (void)
 			if (player->angle >= ANGLES)
 				player->angle -= ANGLES;
 		}
-
+		ResetTicVariables();
 
 		PollControls();
 

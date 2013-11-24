@@ -1074,10 +1074,10 @@ boolean CheckLine (objtype *ob)
 		deltafrac = abs(x2-x1);
 		delta = y2-y1;
 		ltemp = ((long)delta<<8)/deltafrac;
-		if (ltemp > 0x7fffl)
-			ystep = 0x7fff;
-		else if (ltemp < -0x7fffl)
-			ystep = -0x7fff;
+		if (ltemp > INT_MAX_L)
+			ystep = INT_MAX;
+		else if (ltemp < -INT_MAX_L)
+			ystep = -INT_MAX;
 		else
 			ystep = ltemp;
 		yfrac = y1 + (((long)ystep*partial) >>8);
@@ -1128,10 +1128,10 @@ boolean CheckLine (objtype *ob)
 		deltafrac = abs(y2-y1);
 		delta = x2-x1;
 		ltemp = ((long)delta<<8)/deltafrac;
-		if (ltemp > 0x7fffl)
-			xstep = 0x7fff;
-		else if (ltemp < -0x7fffl)
-			xstep = -0x7fff;
+		if (ltemp > INT_MAX_L)
+			xstep = INT_MAX;
+		else if (ltemp < -INT_MAX_L)
+			xstep = -INT_MAX;
 		else
 			xstep = ltemp;
 		xfrac = x1 + (((long)xstep*partial) >>8);

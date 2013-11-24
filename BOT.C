@@ -1,8 +1,18 @@
 #include "wl_def.h"
 #include "bot.h"
 #include "queue.h"
+#include "util.h"
 
 #define ENEMY_VISIBLE_RANGE 15
+#define ENEMY_VISIBLE_CHANGE_DISTANCE 2
+
+#define AMMO_NEED_AMOUNT 80
+#define HUNT_NAZIS_HEALTH 75
+#define HUNT_NAZIS_AMMO 50
+#define ANGLE_TURN_SLOWDOWN 15
+
+#define DISTANCE_SHOOT 10
+#define DISTANCE_CHARGE 6
 
 word path_prev[MAPSIZE*MAPSIZE];
 
@@ -13,7 +23,7 @@ objtype* EnemyVisible(int *angle, int *distance)
 	int i, j, k;
 	static objtype* oldob;
 	
-	int distmin = 0x7fff;
+	int distmin = INT_MAX;
 	fixed dxmin, dymin;
 	objtype* obmin = NULL;
 		
@@ -25,11 +35,13 @@ objtype* EnemyVisible(int *angle, int *distance)
 		
 		if(i > ENEMY_VISIBLE_RANGE)
 			continue;
-		if(!CheckLine(ob))
-			continue;
 		if(!(ob->flags & FL_VISABLE))
 			continue;
-		if((abs(*distance - i) >= 2 && ob != oldob) || ob == oldob || (oldob && !(oldob->flags & FL_SHOOTABLE)))
+		if(!(ob->flags & FL_SHOOTABLE))
+			continue;
+		if(!CheckLine(ob))
+			continue;
+		if((abs(*distance - i) >= ENEMY_VISIBLE_CHANGE_DISTANCE && ob != oldob) || ob == oldob || (oldob && !(oldob->flags & FL_SHOOTABLE)))
 		{
 			if(i <= distmin)
 			{
@@ -99,11 +111,11 @@ boolean ObjectOfInterest(word n)
 			case    bo_fullheal:
 				return true;
 			case    bo_clip:
-				if(gamestate.ammo < 80)
+				if(gamestate.ammo < AMMO_NEED_AMOUNT)
 					return true;
 				break;
 			case    bo_clip2:
-				if (gamestate.ammo < 80)
+				if (gamestate.ammo < AMMO_NEED_AMOUNT)
 					return true;
 				break;
 #ifdef SPEAR
@@ -112,8 +124,7 @@ boolean ObjectOfInterest(word n)
 					return true;
 				break;
 			case    bo_spear:
-				if(searchstage >= SSSecretLift || moodBox() & MoodBox::MOOD_TAKEFIRSTEXIT)
-					return true;
+				return true;
 				break;
 #endif
 			case    bo_gibs:
@@ -124,10 +135,10 @@ boolean ObjectOfInterest(word n)
 		}
 	}
 
-	if(check >= objlist && (check->flags & FL_SHOOTABLE) && gamestate.health > 75 && gamestate.ammo > 50)
+	if(check >= objlist && (check->flags & FL_SHOOTABLE) && gamestate.health > HUNT_NAZIS_HEALTH && gamestate.ammo > HUNT_NAZIS_AMMO)
 		return true;
 	
-	
+	return false;
 }
 
 boolean TilePassable(word n)
@@ -160,6 +171,7 @@ word FindShortestPath()
 	word m;
 	byte i;
 	memset(path_prev,0,sizeof(path_prev));
+	QUEUE_RESET
 	QUEUE_PUSH(n)
 	path_prev[n] = WORD_MAX;
 	while(!QUEUE_EMPTY)
@@ -177,16 +189,50 @@ word FindShortestPath()
 		n = m - MAPSIZE;
 		PROCEED(n)
 	}
+	return 0;
 #undef PROCEED
+}
+
+void TurnToAngle(int dangle) 
+{
+	buttonstate[bt_strafe] = false;
+
+	if(dangle > ANGLE_TURN_SLOWDOWN)
+		controlx = -RUNMOVE * tics;
+	else if(dangle > 0)
+		controlx = -BASEMOVE * tics;
+	else if(dangle < -ANGLE_TURN_SLOWDOWN)
+		controlx = +RUNMOVE * tics;
+	else if(dangle < 0)
+		controlx = +BASEMOVE * tics;
 }
 
 void DoCombatAI(int angle, int distance)
 {
-	QUEUE_RESET
-	QueuePush(
+	int dangle = CentreAngle(angle, player->angle);
+	static int inc;
+	objtype* check;
+	TurnToAngle(dangle);
+	check = GunSightTarget();
+	++inc;
+	if(check)
+	{
+		if(distance <= DISTANCE_SHOOT)
+			if(gamestate.weapon <= wp_pistol)
+				buttonstate[bt_attack] = (boolean)(inc % 2);
+			else
+				buttonstate[bt_attack] = true;
+		if(distance > DISTANCE_CHARGE || gamestate.weapon == wp_knife)
+			controly = -RUNMOVE * tics;
+	}
 }
 
-void BotCommand()
+void DoNonCombatAI(void)
+{
+	
+}
+
+void BotCommand(void)
 {
 	int angle = -1, distance = -2;
 	objtype* check;

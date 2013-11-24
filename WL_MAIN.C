@@ -665,7 +665,7 @@ void CalcProjection (long focal)
 // the heightbuffer.  The pixel height is height>>2
 //
 	heightnumerator = (TILEGLOBAL*scale)>>6;
-	minheightdiv = heightnumerator/0x7fff +1;
+	minheightdiv = heightnumerator/INT_MAX +1;
 
 //
 // calculate the angle offset from view angle of each pixel's ray

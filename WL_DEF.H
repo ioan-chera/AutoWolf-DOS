@@ -52,6 +52,9 @@
 */
 
 #define WORD_MAX		0xffff
+#define LONG_MAX		0x7fffffffl
+#define INT_MAX			0x7fff
+#define INT_MAX_L		0x7fffl
 
 #define MAXACTORS		150				// max number of nazis, etc / map
 #define MAXSTATS		400				// max number of lamps, bonus, etc
@@ -869,6 +872,9 @@ void UpdateSoundLoc(void);
 =============================================================================
 */
 
+extern boolean		tic_gunsight_set;
+extern objtype*		tic_gunsight;
+
 #ifdef SPEAR
 extern	long		funnyticount;		// FOR FUNNY BJ FACE
 #endif
@@ -1121,6 +1127,8 @@ extern	unsigned	plux,pluy;		// player coordinates scaled to unsigned
 
 extern	int			anglefrac;
 extern	int			facecount;
+
+objtype* GunSightTarget(void);
 
 void	SpawnPlayer (int tilex, int tiley, int dir);
 void 	DrawFace (void);

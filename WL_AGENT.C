@@ -1130,27 +1130,33 @@ void SpawnPlayer (int tilex, int tiley, int dir)
 ===============
 */
 
-void	KnifeAttack (objtype *ob)
+objtype* ClosestTarget(long *dist, objtype* closest)
 {
-	objtype *check,*closest;
-	long	dist;
-
-	SD_PlaySound (ATKKNIFESND);
-// actually fire
-	dist = 0x7fffffff;
-	closest = NULL;
-	for (check=ob->next ; check ; check=check->next)
+	objtype *check;
+	
+	for (check=player->next ; check ; check=check->next)
 		if ( (check->flags & FL_SHOOTABLE)
 		&& (check->flags & FL_VISABLE)
 		&& abs (check->viewx-centerx) < shootdelta
 		)
 		{
-			if (check->transx < dist)
+			if (check->transx < *dist)
 			{
-				dist = check->transx;
+				*dist = check->transx;
 				closest = check;
 			}
 		}
+	return closest;
+}
+
+void	KnifeAttack (objtype *ob)
+{
+	objtype *closest;
+	long dist = LONG_MAX;
+
+	SD_PlaySound (ATKKNIFESND);
+// actually fire
+	closest = ClosestTarget(&dist, NULL);
 
 	if (!closest || dist> 0x18000l)
 	{
@@ -1163,14 +1169,44 @@ void	KnifeAttack (objtype *ob)
 	DamageActor (closest,US_RndT() >> 4);
 }
 
+objtype* GunSightTarget(void)
+{
+	objtype* oldclosest, *closest, *check;
+	long viewdist;
+	
+	if(tic_gunsight_set)
+		return tic_gunsight;	// cached per tic
+	tic_gunsight_set = true;
+	
+	viewdist = LONG_MAX;
+	closest = NULL;
+	while (1)
+	{
+		oldclosest = closest;
+		closest = ClosestTarget(&viewdist, closest);
 
+		if (closest == oldclosest)
+		{
+			tic_gunsight = NULL;
+			return NULL;						// no more targets, all missed
+		}
+
+	//
+	// trace a line from player to enemey
+	//
+		if (CheckLine(closest))
+		{
+			tic_gunsight = closest;
+			return closest;
+		}
+	}
+}
 
 void	GunAttack (objtype *ob)
 {
-	objtype *check,*closest,*oldclosest;
+	objtype *closest;
 	int		damage;
 	int		dx,dy,dist;
-	long	viewdist;
 
 	switch (gamestate.weapon)
 	{
@@ -1190,36 +1226,9 @@ void	GunAttack (objtype *ob)
 //
 // find potential targets
 //
-	viewdist = 0x7fffffffl;
-	closest = NULL;
-
-	while (1)
-	{
-		oldclosest = closest;
-
-		for (check=ob->next ; check ; check=check->next)
-			if ( (check->flags & FL_SHOOTABLE)
-			&& (check->flags & FL_VISABLE)
-			&& abs (check->viewx-centerx) < shootdelta
-			)
-			{
-				if (check->transx < viewdist)
-				{
-					viewdist = check->transx;
-					closest = check;
-				}
-			}
-
-		if (closest == oldclosest)
-			return;						// no more targets, all missed
-
-	//
-	// trace a line from player to enemey
-	//
-		if (CheckLine(closest))
-			break;
-
-	}
+	closest = GunSightTarget();
+	if(!closest)
+		return;
 
 //
 // hit something
