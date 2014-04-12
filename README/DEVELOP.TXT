@@ -1,0 +1,16 @@
+Note for developers:
+
+Borland C needs to be set up:
+- You need to have it installed in path C:\BORLANDC\BIN.
+- Here's a possible scenario:
+ - Start DOSBox, you're in virtual drive Z:
+ - Z:\>mount c ~/path/to/dos/root
+ - Z:\>c:
+ - C:\>SET PATH=C:\BORLANDC\BIN
+ - C:\>cd path\to\WOLFSRC
+ - C:\>bc
+ - Menu->Compile->Build All
+ - Exit
+ - C:\>cd \path\to\wolf3d
+ - C:\>path\to\WOLFSRC\OBJ\wolf3d
+ - now it will start
