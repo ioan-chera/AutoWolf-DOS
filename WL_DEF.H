@@ -698,6 +698,8 @@ typedef struct objstruct
 
 	int			temp1,temp2,temp3;
 	struct		objstruct	*next,*prev;
+// Start additions
+	time_t		lastSoundTime;
 } objtype;
 
 
@@ -873,7 +875,7 @@ void DrawAllPlayBorderSides (void);
 
 // JAB
 #define	PlaySoundLocTile(s,tx,ty)	PlaySoundLocGlobal(s,(((long)(tx) << TILESHIFT) + (1L << (TILESHIFT - 1))),(((long)ty << TILESHIFT) + (1L << (TILESHIFT - 1))))
-#define	PlaySoundLocActor(s,ob)		PlaySoundLocGlobal(s,(ob)->x,(ob)->y)
+#define	PlaySoundLocActor(s,ob)		do{PlaySoundLocGlobal(s,(ob)->x,(ob)->y);(ob)->lastSoundTime=time(NULL);}while(0);
 void	PlaySoundLocGlobal(word s,fixed gx,fixed gy);
 void UpdateSoundLoc(void);
 

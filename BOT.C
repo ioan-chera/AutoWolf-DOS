@@ -16,6 +16,8 @@
 #define DISTANCE_CHARGE 6
 #define ANGLE_FOV 45
 
+#define SOUND_HEAR_TIME_SECONDS 3
+
 static const int RELATIVE_DIR_X[4] = {1, 0, -1,  0};
 static const int RELATIVE_DIR_Y[4] = {0, 1,  0, -1};
 
@@ -47,7 +49,8 @@ objtype* EnemyVisible(int *angle, int *distance)
 
 		if(i > ENEMY_VISIBLE_RANGE)
 			continue;
-		if(!(ob->flags & FL_VISABLE))
+		if(!(ob->flags & FL_VISABLE)
+		&& time(NULL) - ob->lastSoundTime > SOUND_HEAR_TIME_SECONDS)
 			continue;
 		if(!(ob->flags & FL_SHOOTABLE))
 			continue;

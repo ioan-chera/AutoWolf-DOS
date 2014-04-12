@@ -13,6 +13,7 @@
 #include <STDLIB.H>
 #include <STRING.H>
 #include <SYS\STAT.H>
+#include <TIME.H>
 #include <VALUES.H>
 #include <DIR.H>
 #define __ID_GLOB__
